@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LiveMarkdownTextarea } from "@/components/LiveMarkdownTextarea";
 import { TagTree } from "@/components/TagTree";
@@ -18,7 +18,7 @@ type CreateWikiResponse = {
   message?: string;
 };
 
-export default function WikiNewPage() {
+function WikiNewPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTitle = searchParams.get("title")?.trim() ?? "";
@@ -297,5 +297,13 @@ export default function WikiNewPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function WikiNewPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-zinc-600">新規記事画面を読み込み中...</p>}>
+      <WikiNewPageContent />
+    </Suspense>
   );
 }

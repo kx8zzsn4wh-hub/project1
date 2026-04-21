@@ -30,17 +30,16 @@ function parsePresets(raw: string | null): PracticePreset[] {
       }
 
       const preset = item as Partial<PracticePreset>;
-      const valid =
-        typeof preset.id === "string" &&
-        typeof preset.name === "string" &&
-        typeof preset.createdAt === "string" &&
-        typeof preset.total === "number" &&
-        typeof preset.correct === "number" &&
-        (typeof preset.partial === "number" || preset.partial === undefined) &&
-        Array.isArray(preset.ids) &&
-        preset.ids.every((id) => typeof id === "string");
-
-      if (!valid) {
+      if (
+        typeof preset.id !== "string" ||
+        typeof preset.name !== "string" ||
+        typeof preset.createdAt !== "string" ||
+        typeof preset.total !== "number" ||
+        typeof preset.correct !== "number" ||
+        (typeof preset.partial !== "number" && preset.partial !== undefined) ||
+        !Array.isArray(preset.ids) ||
+        !preset.ids.every((id) => typeof id === "string")
+      ) {
         continue;
       }
 
