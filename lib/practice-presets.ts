@@ -11,6 +11,36 @@ export type PracticePreset = {
 
 const STORAGE_KEY = "project1.practicePresets";
 
+type ParsedPreset = {
+  id: string;
+  name: string;
+  createdAt: string;
+  total: number;
+  correct: number;
+  partial?: number;
+  ids: string[];
+  bookmarked?: boolean;
+};
+
+function isParsedPreset(value: unknown): value is ParsedPreset {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const preset = value as Partial<ParsedPreset>;
+
+  return (
+    typeof preset.id === "string" &&
+    typeof preset.name === "string" &&
+    typeof preset.createdAt === "string" &&
+    typeof preset.total === "number" &&
+    typeof preset.correct === "number" &&
+    (typeof preset.partial === "number" || preset.partial === undefined) &&
+    Array.isArray(preset.ids) &&
+    preset.ids.every((id) => typeof id === "string")
+  );
+}
+
 function parsePresets(raw: string | null): PracticePreset[] {
   if (!raw) {
     return [];
@@ -25,33 +55,19 @@ function parsePresets(raw: string | null): PracticePreset[] {
     const normalized: PracticePreset[] = [];
 
     for (const item of parsed) {
-      if (!item || typeof item !== "object") {
-        continue;
-      }
-
-      const preset = item as Partial<PracticePreset>;
-      if (
-        typeof preset.id !== "string" ||
-        typeof preset.name !== "string" ||
-        typeof preset.createdAt !== "string" ||
-        typeof preset.total !== "number" ||
-        typeof preset.correct !== "number" ||
-        (typeof preset.partial !== "number" && preset.partial !== undefined) ||
-        !Array.isArray(preset.ids) ||
-        !preset.ids.every((id) => typeof id === "string")
-      ) {
+      if (!isParsedPreset(item)) {
         continue;
       }
 
       normalized.push({
-        id: preset.id,
-        name: preset.name,
-        createdAt: preset.createdAt,
-        total: preset.total,
-        correct: preset.correct,
-        partial: typeof preset.partial === "number" ? preset.partial : 0,
-        ids: preset.ids,
-        bookmarked: preset.bookmarked === true,
+        id: item.id,
+        name: item.name,
+        createdAt: item.createdAt,
+        total: item.total,
+        correct: item.correct,
+        partial: typeof item.partial === "number" ? item.partial : 0,
+        ids: item.ids,
+        bookmarked: item.bookmarked === true,
       });
     }
 
