@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+model User {
+  id        String    @id @default(cuid())
+  username  String    @unique
+  passwordHash String?
+  role      UserRole  @default(user)
+  createdAt DateTime  @default(now())
+
+  sessions  Session[]
+  posts     Post[]    @relation("PostAuthor")
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Channel {
+  id    String @id
+  name  String
+
+  posts Post[]
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  content   String
+  authorId  String
+  channelId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author    User     @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Restrict)
+
+  @@index([authorId])
+  @@index([channelId])
+}
