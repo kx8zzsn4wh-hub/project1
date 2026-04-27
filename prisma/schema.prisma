@@ -12,6 +12,11 @@ enum UserRole {
   admin
 }
 
+enum ContentKind {
+  problem
+  wiki
+}
+
 model User {
   id        String    @id @default(cuid())
   username  String    @unique
@@ -21,6 +26,8 @@ model User {
 
   sessions  Session[]
   posts     Post[]    @relation("PostAuthor")
+  ownedContents ContentOwnership[]
+  createdTags Tag[] @relation("TagCreator")
 }
 
 model Session {
@@ -53,4 +60,53 @@ model Post {
 
   @@index([authorId])
   @@index([channelId])
+}
+
+model Tag {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  depth       Int
+  path        String   @unique
+  parentId    String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent      Tag?     @relation("TagHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children    Tag[]    @relation("TagHierarchy")
+  createdBy   User?    @relation("TagCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  contentTags ContentTag[]
+
+  @@unique([parentId, name])
+  @@index([parentId])
+  @@index([depth])
+}
+
+model ContentOwnership {
+  id        String      @id @default(cuid())
+  kind      ContentKind
+  slug      String
+  ownerId   String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  contentTags ContentTag[]
+
+  @@unique([kind, slug])
+  @@index([ownerId])
+}
+
+model ContentTag {
+  id                 String   @id @default(cuid())
+  contentOwnershipId String
+  tagId              String
+  createdAt          DateTime @default(now())
+
+  contentOwnership ContentOwnership @relation(fields: [contentOwnershipId], references: [id], onDelete: Cascade)
+  tag              Tag              @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([contentOwnershipId, tagId])
+  @@index([tagId])
 }

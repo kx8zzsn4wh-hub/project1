@@ -1,5 +1,3 @@
-import { getManagedTagPaths } from "@/lib/tag-taxonomy";
-
 export type TagTree = {
   [key: string]: TagTree;
 };
@@ -27,7 +25,7 @@ function normalizeTagPath(rawPath: string): string {
     return withoutLegacyPrefix[0];
   }
 
-  return withoutLegacyPrefix.slice(0, 2).join("/");
+  return withoutLegacyPrefix.slice(0, 4).join("/");
 }
 
 export function extractTagTermsFromPaths(paths: string[]): string[] {
@@ -71,6 +69,3 @@ export function buildTagTreeFromPaths(paths: string[]): TagTree {
   return root;
 }
 
-export function buildTagTree(): TagTree {
-  return buildTagTreeFromPaths(getManagedTagPaths());
-}

@@ -21,6 +21,37 @@ function toStringArray(value: unknown): string[] {
   return [];
 }
 
+function normalizeTagPaths(values: string[]): string[] {
+  const normalizeSingleTagPath = (rawPath: string) => {
+    const segments = rawPath
+      .split("/")
+      .map((segment) => segment.trim())
+      .filter((segment) => segment.length > 0);
+
+    const withoutLegacyPrefix = segments[0] === "分野" ? segments.slice(1) : segments;
+    return withoutLegacyPrefix.slice(0, 4).join("/");
+  };
+
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+
+  for (const value of values) {
+    const path = normalizeSingleTagPath(value);
+    if (!path || seen.has(path)) {
+      continue;
+    }
+    seen.add(path);
+    normalized.push(path);
+  }
+
+  // Legacy fallback: old frontmatter sometimes stored segments separately (e.g. ["循環器", "心不全"]).
+  if (normalized.length >= 2 && normalized.every((value) => !value.includes("/"))) {
+    return [normalized.slice(0, 4).join("/")];
+  }
+
+  return normalized;
+}
+
 function normalizeFrontmatterSpacing(raw: string): string {
   const normalizedNewline = raw.replace(/\r\n/g, "\n");
   if (!normalizedNewline.startsWith("---\n")) {
@@ -276,6 +307,7 @@ export function getAllProblems(kind?: ProblemKind): Problem[] {
       const correctChoiceIndex = normalizeCorrectChoiceIndex(parsed.data.correctChoiceIndex);
       const explanation = format === "multiple-choice" ? bodyMetadata.explanation : undefined;
       const answer = typeof parsed.data.answer === "string" ? parsed.data.answer : undefined;
+      const tagPaths = normalizeTagPaths(toStringArray(parsed.data.toc));
 
       return {
         slug,
@@ -283,7 +315,8 @@ export function getAllProblems(kind?: ProblemKind): Problem[] {
         updatedAt: stat.mtime.toISOString(),
         aliases: toStringArray(parsed.data.aliases),
         tags: toStringArray(parsed.data.tags),
-        toc: extractTagTermsFromPaths(toStringArray(parsed.data.toc)),
+        toc: extractTagTermsFromPaths(tagPaths),
+        tagPaths,
         type: toStringArray(parsed.data.type),
         content: format === "multiple-choice" ? bodyMetadata.question : parsed.content,
         kind: detectedKind,

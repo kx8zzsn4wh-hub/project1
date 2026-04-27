@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { HierarchicalTagInput } from "@/components/HierarchicalTagInput";
 import { LiveMarkdownTextarea } from "@/components/LiveMarkdownTextarea";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useManagedTagTree } from "@/hooks/useManagedTagTree";
 import { useProblems } from "@/hooks/useProblems";
-import { hasRequiredAreaFieldSelection } from "@/lib/tag-taxonomy";
-import { TagTree } from "@/components/TagTree";
+import { hasRequiredAreaFieldSelection } from "@/lib/tag-validation";
 import type { Problem } from "@/lib/problem-types";
 
 type ProblemFormat = "multiple-choice" | "short-answer";
@@ -39,7 +39,9 @@ function EditProblemForm({ problem }: { problem: Problem }) {
   const [title, setTitle] = useState(problem.title);
   const [question, setQuestion] = useState(problem.content);
   const [problemTag, setProblemTag] = useState(normalizeProblemTag(problem));
-  const [selectedTagTreeTags, setSelectedTagTreeTags] = useState<string[]>(problem.toc);
+  const [selectedTagTreeTags, setSelectedTagTreeTags] = useState<string[]>(
+    problem.tagPaths.length > 0 ? problem.tagPaths : problem.toc,
+  );
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(problem.tags);
   const [format, setFormat] = useState<ProblemFormat>(problem.format === "short-answer" ? "short-answer" : "multiple-choice");
@@ -169,7 +171,7 @@ function EditProblemForm({ problem }: { problem: Problem }) {
     }
 
     if (!hasRequiredAreaFieldSelection(selectedTagTreeTags)) {
-      return "領域タグと分野タグの2階層選択が必須です。";
+      return "階層タグは2〜4階層で1つ以上選択してください。";
     }
 
     if (!question.trim()) {
@@ -263,16 +265,11 @@ function EditProblemForm({ problem }: { problem: Problem }) {
             <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="問題タイトル" />
           </div>
 
-          <div className="space-y-2">
-            <TagTree tree={tree} selectedTags={selectedTagTreeTags} onChange={setSelectedTagTreeTags} />
-            {selectedTagTreeTags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {selectedTagTreeTags.map((tag) => (
-                  <Badge key={tag} variant="outline">{tag}</Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <HierarchicalTagInput
+            tree={tree}
+            selectedPaths={selectedTagTreeTags}
+            onChange={setSelectedTagTreeTags}
+          />
 
           <div className="space-y-2">
             <p className="text-sm font-medium">通常タグ設定（Enterで追加）</p>

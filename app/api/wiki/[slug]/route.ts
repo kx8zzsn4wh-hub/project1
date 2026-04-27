@@ -3,13 +3,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { normalizeStringArray, toYamlList } from "@/lib/content-utils";
 import { getAllProblems } from "@/lib/problems";
-import { hasRequiredAreaFieldSelection } from "@/lib/tag-taxonomy";
+import { getCurrentUser } from "@/lib/session";
+import { assertCanEditContent, ensureOwnership, ContentPermissionError } from "@/lib/content-ownership";
+import { ensureTagPaths, normalizeTagPaths, validateHierarchicalTagPaths } from "@/lib/tagManagement";
 import { assertWikiUniqueness } from "@/lib/wiki-uniqueness";
 
 type UpdateWikiPayload = {
   title: string;
   aliases?: string[];
   tagTreeTags: string[];
+  tagTreePaths?: string[];
   tags: string[];
   content: string;
 };
@@ -61,16 +64,20 @@ function validatePayload(rawPayload: unknown): UpdateWikiPayload {
   const title = typeof payload.title === "string" ? payload.title.trim() : "";
   const content = typeof payload.content === "string" ? payload.content.trim() : "";
   const aliases = normalizeStringArray(payload.aliases);
-  const tagTreeTags = normalizeStringArray(payload.tagTreeTags);
+  const candidateTagTreeTags = Array.isArray(payload.tagTreeTags)
+    ? payload.tagTreeTags
+    : Array.isArray(payload.tagTreePaths)
+      ? payload.tagTreePaths
+      : [];
+
+  const tagTreeTags = normalizeTagPaths(normalizeStringArray(candidateTagTreeTags));
   const tags = normalizeStringArray(payload.tags);
 
   if (!title) {
     throw new Error("タイトルは必須です。");
   }
 
-  if (!hasRequiredAreaFieldSelection(tagTreeTags)) {
-    throw new Error("領域タグと分野タグの2階層選択が必須です。");
-  }
+  validateHierarchicalTagPaths(tagTreeTags);
 
   if (!content) {
     throw new Error("記事内容は必須です。");
@@ -90,6 +97,11 @@ export async function PATCH(
   context: { params: Promise<{ slug: string }> },
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    }
+
     const { slug: encodedSlug } = await context.params;
     const slug = decodeURIComponent(encodedSlug);
     const filePath = resolveFilePath(slug);
@@ -98,7 +110,9 @@ export async function PATCH(
       return NextResponse.json({ ok: false, message: "対象の記事が存在しません。" }, { status: 404 });
     }
 
+    const permission = await assertCanEditContent("wiki", slug, { id: user.id, role: user.role });
     const payload = validatePayload(await request.json());
+    await ensureTagPaths(payload.tagTreeTags);
     const wikiArticles = getAllProblems("wiki");
     const aliases = assertWikiUniqueness({
       title: payload.title,
@@ -127,8 +141,16 @@ export async function PATCH(
 
     fs.writeFileSync(filePath, frontmatter, "utf-8");
 
+    if (permission.canClaim) {
+      await ensureOwnership("wiki", slug, user.id);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof ContentPermissionError) {
+      return NextResponse.json({ ok: false, message: error.message }, { status: error.status });
+    }
+
     const message = error instanceof Error ? error.message : "Failed to update wiki article";
     return NextResponse.json({ ok: false, message }, { status: 400 });
   }

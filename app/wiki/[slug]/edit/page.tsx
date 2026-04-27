@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { HierarchicalTagInput } from "@/components/HierarchicalTagInput";
 import { LiveMarkdownTextarea } from "@/components/LiveMarkdownTextarea";
-import { TagTree } from "@/components/TagTree";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useManagedTagTree } from "@/hooks/useManagedTagTree";
 import { useProblems } from "@/hooks/useProblems";
-import { hasRequiredAreaFieldSelection } from "@/lib/tag-taxonomy";
+import { hasRequiredAreaFieldSelection } from "@/lib/tag-validation";
 import type { Problem } from "@/lib/problem-types";
 
 type UpdateWikiResponse = {
@@ -27,7 +27,9 @@ function EditWikiForm({ article }: { article: Problem }) {
   const [title, setTitle] = useState(article.title);
   const [aliasInput, setAliasInput] = useState("");
   const [aliases, setAliases] = useState<string[]>(article.aliases ?? []);
-  const [selectedTagTreeTags, setSelectedTagTreeTags] = useState<string[]>(article.toc);
+  const [selectedTagTreeTags, setSelectedTagTreeTags] = useState<string[]>(
+    article.tagPaths.length > 0 ? article.tagPaths : article.toc,
+  );
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(article.tags);
   const [content, setContent] = useState(article.content);
@@ -121,7 +123,7 @@ function EditWikiForm({ article }: { article: Problem }) {
     }
 
     if (!hasRequiredAreaFieldSelection(selectedTagTreeTags)) {
-      setError("領域タグと分野タグの2階層選択が必須です。");
+      setError("階層タグは2〜4階層で1つ以上選択してください。");
       return;
     }
 
@@ -236,16 +238,11 @@ function EditWikiForm({ article }: { article: Problem }) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <TagTree tree={tree} selectedTags={selectedTagTreeTags} onChange={setSelectedTagTreeTags} />
-            {selectedTagTreeTags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {selectedTagTreeTags.map((tag) => (
-                  <Badge key={tag} variant="outline">{tag}</Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <HierarchicalTagInput
+            tree={tree}
+            selectedPaths={selectedTagTreeTags}
+            onChange={setSelectedTagTreeTags}
+          />
 
           <div className="space-y-2">
             <p className="text-sm font-medium">通常タグ設定（Enterで追加）</p>

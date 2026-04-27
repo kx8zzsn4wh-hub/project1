@@ -95,7 +95,7 @@ export default function WikiArticleViewPage() {
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            {article.toc.map((item) => (
+            {article.tagPaths.map((item) => (
               <Badge key={`${article.slug}-toc-${item}`} variant="outline">{item}</Badge>
             ))}
             {article.tags.map((item) => (

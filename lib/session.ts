@@ -2,15 +2,22 @@ import "server-only";
 
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
-import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE_NAME } from "@/lib/session-constants";
+
+type SessionUser = {
+  id: string;
+  username: string;
+  role: "user" | "admin";
+  createdAt: Date;
+  passwordHash: string | null;
+};
 
 export type Session = {
   id: string;
   createdAt: Date;
   userId: string;
-  user: User;
+  user: SessionUser;
 };
 
 type CreateSessionInput = {
@@ -71,7 +78,7 @@ export async function getSession(): Promise<Session | null> {
   return findSessionById(sessionId);
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+export async function getCurrentUser(): Promise<SessionUser | null> {
   const session = await getSession();
   return session?.user ?? null;
 }

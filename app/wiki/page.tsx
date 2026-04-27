@@ -176,7 +176,7 @@ export default function WikiPage() {
                         </div>
                       ) : null}
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {problem.toc.map((tag) => (
+                        {problem.tagPaths.map((tag) => (
                           <Badge key={`${problem.slug}-toc-${tag}`} variant="outline">
                             {tag}
                           </Badge>

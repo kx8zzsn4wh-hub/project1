@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { buildTagTree, buildTagTreeFromPaths, type TagTree } from "@/lib/tag-tree";
+import { buildTagTreeFromPaths, type TagTree } from "@/lib/tag-tree";
 
 type TagPathsResponse = {
   ok?: boolean;
@@ -9,7 +9,7 @@ type TagPathsResponse = {
 };
 
 export function useManagedTagTree(pollMs = 20000): TagTree {
-  const [tree, setTree] = useState<TagTree>(() => buildTagTree());
+  const [tree, setTree] = useState<TagTree>({});
   const signatureRef = useRef("");
 
   useEffect(() => {

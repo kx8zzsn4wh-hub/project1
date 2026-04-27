@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { createUniqueSlug, normalizeStringArray, slugifyTitleWithPrefix, toYamlList } from "@/lib/content-utils";
 import { getAllProblems } from "@/lib/problems";
-import { hasRequiredAreaFieldSelection } from "@/lib/tag-taxonomy";
+import { getCurrentUser } from "@/lib/session";
+import { ensureOwnership } from "@/lib/content-ownership";
+import { ensureTagPaths, normalizeTagPaths, validateHierarchicalTagPaths } from "@/lib/tagManagement";
 import { assertWikiUniqueness } from "@/lib/wiki-uniqueness";
 
 const WIKI_DIR = path.join(process.cwd(), "data", "wiki");
@@ -12,6 +14,7 @@ type CreateWikiPayload = {
   title: string;
   aliases?: string[];
   tagTreeTags: string[];
+  tagTreePaths?: string[];
   tocTags?: string[];
   tags: string[];
   content: string;
@@ -28,9 +31,11 @@ function validatePayload(rawPayload: unknown): CreateWikiPayload {
 
   const candidateTagTreeTags = Array.isArray(payload.tagTreeTags)
     ? payload.tagTreeTags
-    : payload.tocTags;
+    : Array.isArray(payload.tagTreePaths)
+      ? payload.tagTreePaths
+      : payload.tocTags;
 
-  const tagTreeTags = normalizeStringArray(candidateTagTreeTags);
+  const tagTreeTags = normalizeTagPaths(normalizeStringArray(candidateTagTreeTags));
 
   const aliases = normalizeStringArray(payload.aliases);
   const tags = normalizeStringArray(payload.tags);
@@ -39,9 +44,7 @@ function validatePayload(rawPayload: unknown): CreateWikiPayload {
     throw new Error("タイトルは必須です。");
   }
 
-  if (!hasRequiredAreaFieldSelection(tagTreeTags)) {
-    throw new Error("領域タグと分野タグの2階層選択が必須です。");
-  }
+  validateHierarchicalTagPaths(tagTreeTags);
 
   if (!content) {
     throw new Error("記事内容は必須です。");
@@ -58,7 +61,13 @@ function validatePayload(rawPayload: unknown): CreateWikiPayload {
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    }
+
     const payload = validatePayload(await request.json());
+    await ensureTagPaths(payload.tagTreeTags);
     const wikiArticles = getAllProblems("wiki");
     const aliases = assertWikiUniqueness({
       title: payload.title,
@@ -89,6 +98,8 @@ export async function POST(request: Request) {
 
     fs.mkdirSync(WIKI_DIR, { recursive: true });
     fs.writeFileSync(path.join(WIKI_DIR, `${slug}.md`), frontmatter, "utf-8");
+
+    await ensureOwnership("wiki", slug, user.id);
 
     return NextResponse.json({ ok: true, slug });
   } catch (error) {

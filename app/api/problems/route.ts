@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { createUniqueSlug, normalizeStringArray, slugifyTitleWithPrefix, toYamlList } from "@/lib/content-utils";
 import { getAllProblems } from "@/lib/problems";
-import { hasRequiredAreaFieldSelection } from "@/lib/tag-taxonomy";
+import { getCurrentUser } from "@/lib/session";
+import { ensureOwnership } from "@/lib/content-ownership";
+import { ensureTagPaths, normalizeTagPaths, validateHierarchicalTagPaths } from "@/lib/tagManagement";
 
 const PROBLEMS_DIR = path.join(process.cwd(), "data", "problems");
 const PROBLEM_TAG_OPTIONS = ["国試", "各論", "確認", "演習"] as const;
@@ -14,6 +16,7 @@ type ProblemKind = "problem" | "wiki";
 type CreateProblemPayload = {
   title: string;
   tagTreeTags: string[];
+  tagTreePaths?: string[];
   tocTags?: string[];
   tags: string[];
   problemTag: string;
@@ -61,17 +64,17 @@ function validatePayload(rawPayload: unknown): CreateProblemPayload {
 
   const candidateTagTreeTags = Array.isArray(payload.tagTreeTags)
     ? payload.tagTreeTags
-    : payload.tocTags;
+    : Array.isArray(payload.tagTreePaths)
+      ? payload.tagTreePaths
+      : payload.tocTags;
 
-  const tagTreeTags = normalizeStringArray(candidateTagTreeTags);
+  const tagTreeTags = normalizeTagPaths(normalizeStringArray(candidateTagTreeTags));
 
   if (!title) {
     throw new Error("タイトルは必須です。");
   }
 
-  if (!hasRequiredAreaFieldSelection(tagTreeTags)) {
-    throw new Error("領域タグと分野タグの2階層選択が必須です。");
-  }
+  validateHierarchicalTagPaths(tagTreeTags);
 
   if (!problemTag || !PROBLEM_TAG_OPTIONS.includes(problemTag as (typeof PROBLEM_TAG_OPTIONS)[number])) {
     throw new Error("問題種別が不正です。");
@@ -153,7 +156,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    }
+
     const payload = validatePayload(await request.json());
+    await ensureTagPaths(payload.tagTreeTags);
     const baseSlug = slugifyTitleWithPrefix(payload.title, "problem");
     const slug = createUniqueSlug(baseSlug, PROBLEMS_DIR);
     const storedCorrectChoiceIndexes = (payload.correctChoiceIndexes ?? []).map((index) => index + 1);
@@ -194,6 +203,8 @@ export async function POST(request: Request) {
 
     fs.mkdirSync(PROBLEMS_DIR, { recursive: true });
     fs.writeFileSync(path.join(PROBLEMS_DIR, `${slug}.md`), markdown, "utf-8");
+
+    await ensureOwnership("problem", slug, user.id);
 
     return NextResponse.json({ ok: true, slug });
   } catch (error) {

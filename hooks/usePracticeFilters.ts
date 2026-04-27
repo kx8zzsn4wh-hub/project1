@@ -22,7 +22,7 @@ export function usePracticeFilters(problems: Problem[]) {
     () =>
       filterProblems(problems, "", selectedTags, selectedTypes, mode, {
         textQueries: searchTerms,
-        tagSelector: (problem) => problem.toc,
+        tagSelector: (problem) => problem.tagPaths,
       }),
     [problems, searchTerms, selectedTags, selectedTypes, mode],
   );

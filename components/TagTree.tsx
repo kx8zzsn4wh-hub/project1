@@ -22,7 +22,7 @@ type TagTreeNodeProps = {
 function TagTreeNode({ label, node, parentPath, selectedSet, onToggle }: TagTreeNodeProps) {
   const currentPath = parentPath ? `${parentPath}/${label}` : label;
   const children = Object.entries(node);
-  const checkState = selectedSet.has(label);
+  const checkState = selectedSet.has(currentPath);
 
   const handleCheckedChange = (value: boolean | "indeterminate") => {
     onToggle(currentPath, value === true);
@@ -70,36 +70,13 @@ function TagTreeNode({ label, node, parentPath, selectedSet, onToggle }: TagTree
 export function TagTree({ tree, selectedTags, onChange }: TagTreeProps) {
   const selectedSet = useMemo(() => new Set(selectedTags), [selectedTags]);
 
-  const ancestorsByPath = useMemo(() => {
-    const map = new Map<string, string[]>();
-
-    const walk = (node: TagTree, parentSegments: string[]) => {
-      for (const [label, childNode] of Object.entries(node)) {
-        const currentSegments = [...parentSegments, label];
-        const currentPath = currentSegments.join("/");
-        map.set(currentPath, parentSegments);
-        walk(childNode, currentSegments);
-      }
-    };
-
-    walk(tree, []);
-    return map;
-  }, [tree]);
-
   const handleToggle = (path: string, checked: boolean) => {
-    const segments = path.split("/");
-    const tag = segments[segments.length - 1];
     const next = new Set(selectedSet);
 
     if (checked) {
-      next.add(tag);
-
-      const ancestors = ancestorsByPath.get(path) ?? [];
-      for (const ancestor of ancestors) {
-        next.add(ancestor);
-      }
+      next.add(path);
     } else {
-      next.delete(tag);
+      next.delete(path);
     }
 
     onChange(Array.from(next).sort((a, b) => a.localeCompare(b, "ja")));

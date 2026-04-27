@@ -7,6 +7,12 @@ type FilterOptions = {
   textQueries?: string[];
 };
 
+function matchesTagPath(problemTagPaths: string[], selectedPath: string): boolean {
+  return problemTagPaths.some(
+    (path) => path === selectedPath || path.startsWith(`${selectedPath}/`),
+  );
+}
+
 export function filterProblems(
   problems: Problem[],
   textQuery: string,
@@ -37,8 +43,8 @@ export function filterProblems(
     const problemTags = tagSelector(problem);
     const tagMatch = hasTags
       ? mode === "AND"
-        ? selectedTags.every((selectedTag) => problemTags.includes(selectedTag))
-        : selectedTags.some((selectedTag) => problemTags.includes(selectedTag))
+        ? selectedTags.every((selectedTag) => matchesTagPath(problemTags, selectedTag))
+        : selectedTags.some((selectedTag) => matchesTagPath(problemTags, selectedTag))
       : true;
     const typeMatch = hasTypes ? problem.type.some((type) => selectedTypes.includes(type)) : true;
 

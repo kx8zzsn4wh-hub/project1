@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { normalizeStringArray, toYamlList } from "@/lib/content-utils";
-import { hasRequiredAreaFieldSelection } from "@/lib/tag-taxonomy";
+import { getCurrentUser } from "@/lib/session";
+import { assertCanEditContent, ensureOwnership, ContentPermissionError } from "@/lib/content-ownership";
+import { ensureTagPaths, normalizeTagPaths, validateHierarchicalTagPaths } from "@/lib/tagManagement";
 
 type ProblemFormat = "multiple-choice" | "short-answer";
 
 type UpdateProblemPayload = {
   title: string;
   tagTreeTags: string[];
+  tagTreePaths?: string[];
   tags: string[];
   problemTag: string;
   format: ProblemFormat;
@@ -89,15 +92,19 @@ function validatePayload(rawPayload: unknown): UpdateProblemPayload {
   const title = typeof payload.title === "string" ? payload.title.trim() : "";
   const question = typeof payload.question === "string" ? payload.question.trim() : "";
   const problemTag = typeof payload.problemTag === "string" ? payload.problemTag.trim() : "";
-  const tagTreeTags = normalizeStringArray(payload.tagTreeTags);
+  const candidateTagTreeTags = Array.isArray(payload.tagTreeTags)
+    ? payload.tagTreeTags
+    : Array.isArray(payload.tagTreePaths)
+      ? payload.tagTreePaths
+      : [];
+
+  const tagTreeTags = normalizeTagPaths(normalizeStringArray(candidateTagTreeTags));
 
   if (!title) {
     throw new Error("タイトルは必須です。");
   }
 
-  if (!hasRequiredAreaFieldSelection(tagTreeTags)) {
-    throw new Error("領域タグと分野タグの2階層選択が必須です。");
-  }
+  validateHierarchicalTagPaths(tagTreeTags);
 
   if (!problemTag || !PROBLEM_TAG_OPTIONS.includes(problemTag as (typeof PROBLEM_TAG_OPTIONS)[number])) {
     throw new Error("問題種別が不正です。");
@@ -165,6 +172,11 @@ export async function PATCH(
   context: { params: Promise<{ slug: string }> },
 ) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ ok: false, message: "Unauthorized" }, { status: 401 });
+    }
+
     const { slug: encodedSlug } = await context.params;
     const slug = decodeURIComponent(encodedSlug);
     const filePath = resolveFilePath(slug);
@@ -173,7 +185,9 @@ export async function PATCH(
       return NextResponse.json({ ok: false, message: "対象の問題が存在しません。" }, { status: 404 });
     }
 
+    const permission = await assertCanEditContent("problem", slug, { id: user.id, role: user.role });
     const payload = validatePayload(await request.json());
+    await ensureTagPaths(payload.tagTreeTags);
     const storedCorrectChoiceIndexes = (payload.correctChoiceIndexes ?? []).map((index) => index + 1);
 
     const frontmatterLines = [
@@ -210,8 +224,16 @@ export async function PATCH(
 
     fs.writeFileSync(filePath, `${frontmatterLines}${body}`, "utf-8");
 
+    if (permission.canClaim) {
+      await ensureOwnership("problem", slug, user.id);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof ContentPermissionError) {
+      return NextResponse.json({ ok: false, message: error.message }, { status: error.status });
+    }
+
     const message = error instanceof Error ? error.message : "Failed to update problem";
     return NextResponse.json({ ok: false, message }, { status: 400 });
   }

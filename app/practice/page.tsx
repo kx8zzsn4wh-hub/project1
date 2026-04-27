@@ -250,7 +250,7 @@ export default function PracticePage() {
                                 {value}
                               </Badge>
                             ))}
-                            {problem.toc.map((value) => (
+                            {problem.tagPaths.map((value) => (
                               <Badge key={`${problem.slug}-toc-${value}`} variant="outline">
                                 {value}
                               </Badge>

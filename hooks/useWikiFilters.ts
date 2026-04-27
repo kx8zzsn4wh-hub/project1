@@ -7,6 +7,12 @@ import { useManagedTagTree } from "@/hooks/useManagedTagTree";
 type WikiSortBy = "title" | "slug" | "hit" | "updatedAt";
 type FilterMode = "AND" | "OR";
 
+function matchesTagPath(problemTagPaths: string[], selectedPath: string): boolean {
+  return problemTagPaths.some(
+    (path) => path === selectedPath || path.startsWith(`${selectedPath}/`),
+  );
+}
+
 export function useWikiFilters(problems: Problem[]) {
   const [textInput, setTextInput] = useState("");
   const [searchTerms, setSearchTerms] = useState<string[]>([]);
@@ -29,8 +35,8 @@ export function useWikiFilters(problems: Problem[]) {
 
           const tagMatch = hasTags
             ? mode === "AND"
-              ? selectedTags.every((tag) => problem.toc.includes(tag))
-              : selectedTags.some((tag) => problem.toc.includes(tag))
+              ? selectedTags.every((tag) => matchesTagPath(problem.tagPaths, tag))
+              : selectedTags.some((tag) => matchesTagPath(problem.tagPaths, tag))
             : true;
 
           const lowerTitle = problem.title.toLowerCase();

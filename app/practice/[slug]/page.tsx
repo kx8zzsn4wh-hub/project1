@@ -105,7 +105,7 @@ export default function PracticeProblemViewPage() {
             {problem.type.map((item) => (
               <Badge key={`${problem.slug}-type-${item}`} variant="secondary">{item}</Badge>
             ))}
-            {problem.toc.map((item) => (
+            {problem.tagPaths.map((item) => (
               <Badge key={`${problem.slug}-toc-${item}`} variant="outline">{item}</Badge>
             ))}
             {problem.tags.map((item) => (
