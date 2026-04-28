@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import type { ContentKind } from "@prisma/client";
+
+type ContentKind = Parameters<typeof prisma.contentOwnership.upsert>[0]["create"]["kind"];
 
 type Actor = {
   id: string;
