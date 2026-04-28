@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "db:prepare": "prisma generate && prisma db push",
     "dev": "next dev",
-    "prebuild": "prisma generate",
+    "prebuild": "npm run db:prepare",
     "build": "next build",
+    "prestart": "npm run db:prepare",
     "start": "next start",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
