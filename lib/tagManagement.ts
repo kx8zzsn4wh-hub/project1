@@ -74,9 +74,7 @@ export function validateHierarchicalTagPaths(paths: string[], options?: { minDep
   }
 }
 
-export async function listManagedTagPaths(): Promise<string[]> {
-  return getManagedTagPaths();
-}
+
 
 export async function ensureTagPaths(paths: string[]): Promise<ManagedTag[]> {
   const normalized = normalizeTagPaths(paths);
@@ -93,7 +91,7 @@ export async function ensureTagPaths(paths: string[]): Promise<ManagedTag[]> {
     }
   }
 
-  const nextPaths = Array.from(currentSet).sort((a, b) => a.localeCompare(b, "ja"));
+  const nextPaths = Array.from(currentSet);
   setManagedTagPaths(nextPaths);
 
   return normalized.map((path) => ({ path }));

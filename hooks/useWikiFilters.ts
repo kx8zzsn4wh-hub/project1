@@ -39,12 +39,16 @@ export function useWikiFilters(problems: Problem[]) {
               : selectedTags.some((tag) => matchesTagPath(problem.tagPaths, tag))
             : true;
 
-          const lowerTitle = problem.title.toLowerCase();
-          const lowerAliases = (problem.aliases ?? []).map((alias) => alias.toLowerCase());
+          const textPool = [
+            problem.title,
+            ...(problem.aliases ?? []),
+            ...problem.tags,
+            ...problem.toc,
+          ].map((value) => value.toLowerCase());
           const textMatch = hasText
             ? mode === "AND"
-              ? normalizedQueries.every((query) => lowerTitle.includes(query) || lowerAliases.some((alias) => alias.includes(query)))
-              : normalizedQueries.some((query) => lowerTitle.includes(query) || lowerAliases.some((alias) => alias.includes(query)))
+              ? normalizedQueries.every((query) => textPool.some((entry) => entry.includes(query)))
+              : normalizedQueries.some((query) => textPool.some((entry) => entry.includes(query)))
             : true;
 
           if (mode === "AND") {

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeStringArray, toYamlList } from "@/lib/content-utils";
+import matter from "gray-matter";
+import { normalizeIndependentTags, normalizeStringArray, toYamlList } from "@/lib/content-utils";
 import { getCurrentUser } from "@/lib/session";
 import { assertCanEditContent, ensureOwnership, ContentPermissionError } from "@/lib/content-ownership";
 import { ensureTagPaths, normalizeTagPaths, validateHierarchicalTagPaths } from "@/lib/tagManagement";
@@ -114,7 +115,7 @@ function validatePayload(rawPayload: unknown): UpdateProblemPayload {
     throw new Error("問題文は必須です。");
   }
 
-  const tags = normalizeStringArray(payload.tags);
+  const tags = normalizeIndependentTags(payload.tags, tagTreeTags);
   const format = payload.format === "short-answer" ? "short-answer" : "multiple-choice";
 
   let choices: string[] | undefined;
@@ -189,10 +190,16 @@ export async function PATCH(
     const payload = validatePayload(await request.json());
     await ensureTagPaths(payload.tagTreeTags);
     const storedCorrectChoiceIndexes = (payload.correctChoiceIndexes ?? []).map((index) => index + 1);
+    const existing = matter(fs.readFileSync(filePath, "utf-8"));
+    const preservedCreatedBy = typeof existing.data.createdBy === "string" && existing.data.createdBy.trim().length > 0
+      ? existing.data.createdBy.trim()
+      : user.username;
 
     const frontmatterLines = [
       "---",
       `title: ${JSON.stringify(payload.title)}`,
+      `createdBy: ${JSON.stringify(preservedCreatedBy)}`,
+      `updatedBy: ${JSON.stringify(user.username)}`,
       "tags:",
       toYamlList(payload.tags),
       "toc:",

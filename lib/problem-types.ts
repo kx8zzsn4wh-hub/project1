@@ -11,6 +11,8 @@ export type Problem = ProblemFrontmatter & {
   content: string;
   kind: "problem" | "wiki";
   updatedAt: string;
+  createdBy?: string;
+  updatedBy?: string;
   tagPaths: string[];
   format?: "multiple-choice" | "short-answer";
   choices?: string[];

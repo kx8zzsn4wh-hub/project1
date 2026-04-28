@@ -34,11 +34,11 @@ export function filterProblems(
     const hasTags = selectedTags.length > 0;
     const hasTypes = selectedTypes.length > 0;
 
-    const lowerTitle = problem.title.toLowerCase();
+    const textPool = [problem.title, ...problem.tags, ...problem.toc].map((value) => value.toLowerCase());
     const textMatch = hasText
       ? mode === "AND"
-        ? queries.every((query) => lowerTitle.includes(query))
-        : queries.some((query) => lowerTitle.includes(query))
+        ? queries.every((query) => textPool.some((entry) => entry.includes(query)))
+        : queries.some((query) => textPool.some((entry) => entry.includes(query)))
       : true;
     const problemTags = tagSelector(problem);
     const tagMatch = hasTags

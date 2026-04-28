@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { listManagedTagPaths } from "@/lib/tagManagement";
+import { getManagedTagPaths } from "@/lib/tag-taxonomy";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const paths = await listManagedTagPaths();
+  const paths = getManagedTagPaths();
 
   return NextResponse.json(
     { ok: true, paths },

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { createUniqueSlug, normalizeStringArray, slugifyTitleWithPrefix, toYamlList } from "@/lib/content-utils";
+import { createUniqueSlug, normalizeIndependentTags, normalizeStringArray, slugifyTitleWithPrefix, toYamlList } from "@/lib/content-utils";
 import { getAllProblems } from "@/lib/problems";
 import { getCurrentUser } from "@/lib/session";
 import { ensureOwnership } from "@/lib/content-ownership";
@@ -38,7 +38,7 @@ function validatePayload(rawPayload: unknown): CreateWikiPayload {
   const tagTreeTags = normalizeTagPaths(normalizeStringArray(candidateTagTreeTags));
 
   const aliases = normalizeStringArray(payload.aliases);
-  const tags = normalizeStringArray(payload.tags);
+  const tags = normalizeIndependentTags(payload.tags, tagTreeTags);
 
   if (!title) {
     throw new Error("タイトルは必須です。");
@@ -81,6 +81,8 @@ export async function POST(request: Request) {
     const frontmatter = [
       "---",
       `title: ${JSON.stringify(payload.title)}`,
+      `createdBy: ${JSON.stringify(user.username)}`,
+      `updatedBy: ${JSON.stringify(user.username)}`,
       "aliases:",
       toYamlList(aliases),
       "tags:",

@@ -42,7 +42,7 @@ export function HierarchicalTagInput({ tree, selectedPaths, onChange }: Props) {
     if (pathParts.length < 2) return;
     const path = pathParts.join("/");
     if (!selectedPaths.includes(path)) {
-      onChange([...selectedPaths, path].sort((a, b) => a.localeCompare(b, "ja")));
+      onChange([...selectedPaths, path]);
     }
     setLevels(["", "", "", ""]);
   };

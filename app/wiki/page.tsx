@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ResultListSkeleton, TreeSkeleton } from "@/components/ProblemPlaceholders";
 import { SelectedFilterBadges } from "@/components/SelectedFilterBadges";
 import { TagTree } from "@/components/TagTree";
+import { IndependentTagBadges } from "@/components/IndependentTagBadges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -176,11 +177,7 @@ export default function WikiPage() {
                         </div>
                       ) : null}
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {problem.tagPaths.map((tag) => (
-                          <Badge key={`${problem.slug}-toc-${tag}`} variant="outline">
-                            {tag}
-                          </Badge>
-                        ))}
+                        <IndependentTagBadges slug={problem.slug} tags={problem.tags} tagPaths={problem.tagPaths} />
                       </div>
                     </li>
                   );

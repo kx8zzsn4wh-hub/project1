@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { WikiMarkdownBody } from "@/components/WikiMarkdownBody";
 import { Badge } from "@/components/ui/badge";
+import { IndependentTagBadges } from "@/components/IndependentTagBadges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useProblems } from "@/hooks/useProblems";
 
@@ -99,18 +100,16 @@ export default function PracticeProblemViewPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{problem.title}</CardTitle>
+          <p className="text-xs text-zinc-500">
+            作成者: {problem.createdBy ?? "不明"} / 最終編集: {problem.updatedBy ?? "不明"}
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {problem.type.map((item) => (
               <Badge key={`${problem.slug}-type-${item}`} variant="secondary">{item}</Badge>
             ))}
-            {problem.tagPaths.map((item) => (
-              <Badge key={`${problem.slug}-toc-${item}`} variant="outline">{item}</Badge>
-            ))}
-            {problem.tags.map((item) => (
-              <Badge key={`${problem.slug}-tag-${item}`} variant="outline">#{item}</Badge>
-            ))}
+            <IndependentTagBadges slug={problem.slug} tags={problem.tags} tagPaths={problem.tagPaths} />
           </div>
 
           <div className="rounded-md border bg-zinc-50 p-4">

@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
 import type { Problem } from "@/lib/problem-types";
+import { normalizeIndependentTags } from "@/lib/content-utils";
 import { extractTagTermsFromPaths } from "@/lib/tag-tree";
 
 const PROBLEMS_DIR = path.join(process.cwd(), "data", "problems");
@@ -308,13 +309,17 @@ export function getAllProblems(kind?: ProblemKind): Problem[] {
       const explanation = format === "multiple-choice" ? bodyMetadata.explanation : undefined;
       const answer = typeof parsed.data.answer === "string" ? parsed.data.answer : undefined;
       const tagPaths = normalizeTagPaths(toStringArray(parsed.data.toc));
+      const createdBy = typeof parsed.data.createdBy === "string" ? parsed.data.createdBy.trim() : "";
+      const updatedBy = typeof parsed.data.updatedBy === "string" ? parsed.data.updatedBy.trim() : "";
 
       return {
         slug,
         title,
         updatedAt: stat.mtime.toISOString(),
+        createdBy: createdBy || undefined,
+        updatedBy: updatedBy || undefined,
         aliases: toStringArray(parsed.data.aliases),
-        tags: toStringArray(parsed.data.tags),
+        tags: normalizeIndependentTags(parsed.data.tags, tagPaths),
         toc: extractTagTermsFromPaths(tagPaths),
         tagPaths,
         type: toStringArray(parsed.data.type),

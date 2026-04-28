@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { IndependentTagBadges } from "@/components/IndependentTagBadges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WikiMarkdownBody } from "@/components/WikiMarkdownBody";
 import { useProblems } from "@/hooks/useProblems";
@@ -81,6 +82,9 @@ export default function WikiArticleViewPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{article.title}</CardTitle>
+          <p className="text-xs text-zinc-500">
+            作成者: {article.createdBy ?? "不明"} / 最終編集: {article.updatedBy ?? "不明"}
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {(article.aliases ?? []).length > 0 ? (
@@ -95,12 +99,7 @@ export default function WikiArticleViewPage() {
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            {article.tagPaths.map((item) => (
-              <Badge key={`${article.slug}-toc-${item}`} variant="outline">{item}</Badge>
-            ))}
-            {article.tags.map((item) => (
-              <Badge key={`${article.slug}-tag-${item}`} variant="outline">#{item}</Badge>
-            ))}
+            <IndependentTagBadges slug={article.slug} tags={article.tags} tagPaths={article.tagPaths} />
           </div>
 
           <div className="rounded-md border bg-zinc-50 p-4">

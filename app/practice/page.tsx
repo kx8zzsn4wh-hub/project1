@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { TagTree } from "@/components/TagTree";
+import { IndependentTagBadges } from "@/components/IndependentTagBadges";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -250,16 +251,7 @@ export default function PracticePage() {
                                 {value}
                               </Badge>
                             ))}
-                            {problem.tagPaths.map((value) => (
-                              <Badge key={`${problem.slug}-toc-${value}`} variant="outline">
-                                {value}
-                              </Badge>
-                            ))}
-                            {problem.tags.map((value) => (
-                              <Badge key={`${problem.slug}-tag-${value}`} variant="outline">
-                                #{value}
-                              </Badge>
-                            ))}
+                            <IndependentTagBadges slug={problem.slug} tags={problem.tags} tagPaths={problem.tagPaths} />
                           </div>
                         </div>
                       </li>

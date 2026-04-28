@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { createUniqueSlug, normalizeStringArray, slugifyTitleWithPrefix, toYamlList } from "@/lib/content-utils";
+import { createUniqueSlug, normalizeIndependentTags, normalizeStringArray, slugifyTitleWithPrefix, toYamlList } from "@/lib/content-utils";
 import { getAllProblems } from "@/lib/problems";
 import { getCurrentUser } from "@/lib/session";
 import { ensureOwnership } from "@/lib/content-ownership";
@@ -84,7 +84,7 @@ function validatePayload(rawPayload: unknown): CreateProblemPayload {
     throw new Error("問題文は必須です。");
   }
 
-  const tags = normalizeStringArray(payload.tags);
+  const tags = normalizeIndependentTags(payload.tags, tagTreeTags);
 
   const format = payload.format === "short-answer" ? "short-answer" : "multiple-choice";
 
@@ -170,6 +170,8 @@ export async function POST(request: Request) {
     const frontmatterLines = [
       "---",
       `title: ${JSON.stringify(payload.title)}`,
+      `createdBy: ${JSON.stringify(user.username)}`,
+      `updatedBy: ${JSON.stringify(user.username)}`,
       "tags:",
       toYamlList(payload.tags),
       "toc:",

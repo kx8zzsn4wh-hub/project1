@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
-import { normalizeStringArray, toYamlList } from "@/lib/content-utils";
+import matter from "gray-matter";
+import { normalizeIndependentTags, normalizeStringArray, toYamlList } from "@/lib/content-utils";
 import { getAllProblems } from "@/lib/problems";
 import { getCurrentUser } from "@/lib/session";
 import { assertCanEditContent, ensureOwnership, ContentPermissionError } from "@/lib/content-ownership";
@@ -71,7 +72,7 @@ function validatePayload(rawPayload: unknown): UpdateWikiPayload {
       : [];
 
   const tagTreeTags = normalizeTagPaths(normalizeStringArray(candidateTagTreeTags));
-  const tags = normalizeStringArray(payload.tags);
+  const tags = normalizeIndependentTags(payload.tags, tagTreeTags);
 
   if (!title) {
     throw new Error("タイトルは必須です。");
@@ -113,6 +114,10 @@ export async function PATCH(
     const permission = await assertCanEditContent("wiki", slug, { id: user.id, role: user.role });
     const payload = validatePayload(await request.json());
     await ensureTagPaths(payload.tagTreeTags);
+    const existing = matter(fs.readFileSync(filePath, "utf-8"));
+    const preservedCreatedBy = typeof existing.data.createdBy === "string" && existing.data.createdBy.trim().length > 0
+      ? existing.data.createdBy.trim()
+      : user.username;
     const wikiArticles = getAllProblems("wiki");
     const aliases = assertWikiUniqueness({
       title: payload.title,
@@ -124,6 +129,8 @@ export async function PATCH(
     const frontmatter = [
       "---",
       `title: ${JSON.stringify(payload.title)}`,
+      `createdBy: ${JSON.stringify(preservedCreatedBy)}`,
+      `updatedBy: ${JSON.stringify(user.username)}`,
       "aliases:",
       toYamlList(aliases),
       "tags:",

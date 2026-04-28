@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { IndependentTagBadges } from "@/components/IndependentTagBadges";
 import { ResultListSkeleton } from "@/components/ProblemPlaceholders";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,11 +44,7 @@ export default function ArticlesPage() {
                       </Link>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {problem.tags.map((tag) => (
-                        <Badge key={`${problem.slug}-tag-${tag}`} variant="outline">
-                          #{tag}
-                        </Badge>
-                      ))}
+                      <IndependentTagBadges slug={problem.slug} tags={problem.tags} tagPaths={problem.tagPaths} />
                     </div>
                   </li>
                 ))}
